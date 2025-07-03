@@ -62,8 +62,22 @@
                 searchArea.classList.remove('hidden');
                 displayTopFaqs();
             }).catch(err => { loadingMessage.innerHTML = `<p style="color: red;">初期化エラー: ${err.message}</p>`; });
-
-        const displayTopFaqs = () => { /* ... 変更なし ... */ };
+        
+        // ▼▼▼ 変更点：const を let に修正 ▼▼▼
+        let displayTopFaqs = () => {
+            topFaqList.innerHTML = '';
+            const sortedFaqs = [...faqData].sort((a, b) => b.count - a.count);
+            const top5 = sortedFaqs.slice(0, 5);
+            top5.forEach(item => {
+                if (item.count === 0 && top5.length > 1) return;
+                const div = document.createElement('div');
+                div.className = 'top-faq-item';
+                div.dataset.id = item.id;
+                div.innerHTML = `<p>${item.question}</p>`;
+                div.addEventListener('click', () => showFaqDetails(item.id));
+                topFaqList.appendChild(div);
+            });
+        };
 
         searchForm.addEventListener('submit', (e) => {
             e.preventDefault();
@@ -87,7 +101,8 @@
             });
         });
 
-        const showFaqDetails = (id) => {
+        // ▼▼▼ 変更点：const を let に修正 ▼▼▼
+        let showFaqDetails = (id) => {
             const item = faqData.find(d => d.id === id); if (!item) return;
             const url = `${GAS_WEB_APP_URL}?index=${item.id}`;
             jsonp(url, (data) => {
@@ -99,16 +114,21 @@
             showDetailsArea();
         };
 
-        const showMainPage = () => { /* ... 変更なし ... */ };
-        const showDetailsArea = () => { /* ... 変更なし ... */ };
-        // UI表示ロジックは流用のため省略
-        const originalDisplayTopFaqs = () => { topFaqList.innerHTML = ''; const sortedFaqs = [...faqData].sort((a, b) => b.count - a.count); const top5 = sortedFaqs.slice(0, 5); top5.forEach(item => { if (item.count === 0 && top5.length > 1) return; const div = document.createElement('div'); div.className = 'top-faq-item'; div.dataset.id = item.id; div.innerHTML = `<p>${item.question}</p>`; div.addEventListener('click', () => showFaqDetails(item.id)); topFaqList.appendChild(div); }); };
-        const originalShowMainPage = () => { detailsArea.classList.add('hidden'); topFaqArea.classList.remove('hidden'); searchArea.classList.remove('hidden'); originalDisplayTopFaqs(); };
-        const originalShowDetailsArea = () => { topFaqArea.classList.add('hidden'); searchArea.classList.add('hidden'); detailsArea.classList.remove('hidden'); };
-        backButton.addEventListener('click', originalShowMainPage);
-        displayTopFaqs = originalDisplayTopFaqs; // グローバル関数に再代入
-        showMainPage = originalShowMainPage;
-        showDetailsArea = originalShowDetailsArea;
+        // ▼▼▼ 変更点：const を let に修正 ▼▼▼
+        let showMainPage = () => {
+            detailsArea.classList.add('hidden');
+            topFaqArea.classList.remove('hidden');
+            searchArea.classList.remove('hidden');
+            displayTopFaqs();
+        };
+        
+        let showDetailsArea = () => {
+            topFaqArea.classList.add('hidden');
+            searchArea.classList.add('hidden');
+            detailsArea.classList.remove('hidden');
+        };
+
+        backButton.addEventListener('click', showMainPage);
     });
     </script>
 </body>
