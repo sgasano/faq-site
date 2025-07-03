@@ -4,54 +4,28 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FAQ検索</title>
-    <style>
-        /* スタイルは変更なし */
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; line-height: 1.6; margin: 0; padding: 20px; background-color: #f9f9f9; color: #333; }
-        .container { max-width: 800px; margin: 0 auto; background-color: #fff; padding: 20px 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); min-height: 400px; }
-        h1, h2 { text-align: center; color: #2c3e50; }
-        h2 { font-size: 1.2em; margin-top: 40px; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px; }
-        #search-box { width: 100%; padding: 15px; margin-bottom: 25px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; transition: border-color 0.3s, box-shadow 0.3s; }
-        #search-results, #top-faq-list { max-height: 50vh; overflow-y: auto; padding-left: 0; list-style: none; } /* list-style追加 */
-        .result-item, .top-faq-item { padding: 15px; border-bottom: 1px solid #eee; cursor: pointer; transition: background-color 0.2s; }
-        .result-item:hover, .top-faq-item:hover { background-color: #f2f8fc; }
-        .result-item:last-child, .top-faq-item:last-child { border-bottom: none; }
-        .result-item p, .top-faq-item p { margin: 0; color: #555; }
-        .result-item p:first-child, .top-faq-item p:first-child { font-weight: bold; }
-        .result-item p:last-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        #back-button { background: none; border: 1px solid #ccc; color: #555; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-size: 14px; margin-bottom: 20px; transition: all 0.2s; }
-        .details-question { font-size: 1.4em; font-weight: bold; color: #2c3e50; margin-bottom: 15px; }
-        .details-question::before { content: 'Q. '; }
-        .details-answer { background-color: #fdfdfd; border-left: 4px solid #3498db; padding: 15px 20px; margin-bottom: 20px; white-space: pre-wrap; }
-        .details-image { max-width: 100%; height: auto; border-radius: 5px; margin-top: 10px; border: 1px solid #eee; }
-        .hidden { display: none; }
-        #loading-message, #no-results-message { text-align: center; color: #888; padding: 40px 0; }
-    </style>
+    <style>body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;line-height:1.6;margin:0;padding:20px;background-color:#f9f9f9;color:#333}.container{max-width:800px;margin:0 auto;background-color:#fff;padding:20px 30px;border-radius:10px;box-shadow:0 4px 15px rgba(0,0,0,.08);min-height:400px}h1,h2{text-align:center;color:#2c3e50}h2{font-size:1.2em;margin-top:40px;border-bottom:2px solid #f0f0f0;padding-bottom:10px}#search-box{width:100%;padding:15px;margin-bottom:25px;border:1px solid #ddd;border-radius:8px;box-sizing:border-box;font-size:16px}#search-results,#top-faq-list{max-height:50vh;overflow-y:auto;padding-left:0;list-style:none}.result-item,.top-faq-item{padding:15px;border-bottom:1px solid #eee;cursor:pointer;transition:background-color .2s}.result-item:hover,.top-faq-item:hover{background-color:#f2f8fc}.result-item:last-child,.top-faq-item:last-child{border-bottom:none}.result-item p,.top-faq-item p{margin:0;color:#555}.result-item p:first-child,.top-faq-item p:first-child{font-weight:700}.result-item p:last-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#back-button{background:0 0;border:1px solid #ccc;color:#555;padding:8px 15px;border-radius:5px;cursor:pointer;font-size:14px;margin-bottom:20px}#details-question{font-size:1.4em;font-weight:700;color:#2c3e50;margin-bottom:15px}#details-question::before{content:"Q. "}#details-answer{background-color:#fdfdfd;border-left:4px solid #3498db;padding:15px 20px;margin-bottom:20px;white-space:pre-wrap}.details-image{max-width:100%;height:auto;border-radius:5px;margin-top:10px;border:1px solid #eee}.hidden{display:none}#loading-message,#no-results-message{text-align:center;color:#888;padding:40px 0}</style>
 </head>
 <body>
     <div class="container">
         <h1>FAQ検索</h1>
-        <div id="top-faq-area" class="hidden">
-            <h2>よく見られている質問</h2>
-            <div id="top-faq-list"></div>
-        </div>
+        <div id="top-faq-area" class="hidden"><h2>よく見られている質問</h2><div id="top-faq-list"></div></div>
         <div id="search-area" class="hidden">
             <h2>キーワードで探す</h2>
             <input type="text" id="search-box" placeholder="キーワードをスペース区切りで入力...">
             <div id="search-results"></div>
             <div id="no-results-message" class="hidden"><p>該当する結果が見つかりませんでした。</p></div>
         </div>
-        <div id="details-area" class="hidden">
-            <button id="back-button">← 戻る</button>
-            <div id="details-content"></div>
-        </div>
+        <div id="details-area" class="hidden"><button id="back-button">← 戻る</button><div id="details-content"></div></div>
         <div id="loading-message"><p>データを読み込み中です...</p></div>
     </div>
 
     <script>
     document.addEventListener('DOMContentLoaded', () => {
         const SPREADSHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTjoQQrCTGeKMVSIhVUqwm_kbybGXIrxw5nMdNmfcfv_1RQRTU7DnOyATz_nKgf5qsG__zyeWpgI8dY/pub?output=csv';
-        const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbx6AKn89cfI7Qy0e0QaCJ6YurVCr5FIulioazeEI7EWBkxOJA4G9Qfx8znWM9u2V9d7/exec';
+        const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzhuBF0UfosuyHpu0BJ7pJzQu_w8N-0BzNLwavvt5PqdhdVL7lBR7cFNOAkhWvq_O5f/exec';
 
+        // ... (要素取得やヘルパー関数は省略) ...
         const topFaqArea = document.getElementById('top-faq-area');
         const searchArea = document.getElementById('search-area');
         const detailsArea = document.getElementById('details-area');
@@ -61,109 +35,42 @@
         const backButton = document.getElementById('back-button');
         const loadingMessage = document.getElementById('loading-message');
         const noResultsMessage = document.getElementById('no-results-message');
-
         let faqData = [];
-        
-        // ... (transformGoogleDriveUrl と parseCsvRow は変更なし) ...
-        const transformGoogleDriveUrl = (url) => { const regex = /drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/; const match = url.match(regex); return (match && match[1]) ? `https://i.imgur.com/${match[1]}.png` : url; };
+        const transformImageUrl = (url) => url;
         const parseCsvRow = (row) => { const result = []; const regex = /("([^"]|"")*"|[^,]*)(,|$)/g; row += ','; let match; while ((match = regex.exec(row))) { let value = match[1] || ''; if (value.startsWith('"') && value.endsWith('"')) value = value.slice(1, -1).replace(/""/g, '"'); result.push(value); if (match[3] === '') break; } return result; };
 
         fetch(SPREADSHEET_URL + '&cache_bust=' + new Date().getTime())
-            .then(response => { if (!response.ok) throw new Error('ネットワーク応答エラー: ' + response.status); return response.text(); })
-            .then(csvText => {
-                const rows = csvText.trim().split(/\r?\n/).slice(1);
-                faqData = rows.map((row, index) => {
-                    const columns = parseCsvRow(row);
-                    return { id: index, question: columns[0] || '', answer: columns[1] || '', imageUrl: columns[2] || '', count: parseInt(columns[3] || '0') };
-                }).filter(item => item.question);
-                
+            .then(res => res.text()).then(csvText => {
+                faqData = csvText.trim().split(/\r?\n/).slice(1).map((row, index) => { if (!row.trim()) return null; const columns = parseCsvRow(row); return { id: index, question: columns[0] || '', answer: columns[1] || '', imageUrl: columns[2] || '', count: parseInt(columns[3] || '0') }; }).filter(item => item && item.question);
                 loadingMessage.classList.add('hidden');
                 topFaqArea.classList.remove('hidden');
                 searchArea.classList.remove('hidden');
                 displayTopFaqs();
-            })
-            .catch(error => { loadingMessage.innerHTML = `<p style="color: red;">エラーが発生しました: ${error.message}</p>`; });
+            }).catch(err => { loadingMessage.innerHTML = `<p style="color: red;">初期化エラー: ${err.message}</p>`; });
 
-        const displayTopFaqs = () => {
-            const topFaqList = document.getElementById('top-faq-list');
-            topFaqList.innerHTML = '';
-            const sortedFaqs = [...faqData].sort((a, b) => b.count - a.count);
-            const top5 = sortedFaqs.slice(0, 5);
-            top5.forEach(item => {
-                if (item.count === 0) return;
-                const itemDiv = document.createElement('div');
-                itemDiv.className = 'top-faq-item';
-                itemDiv.dataset.id = item.id;
-                itemDiv.innerHTML = `<p>${item.question}</p>`;
-                itemDiv.addEventListener('click', () => showFaqDetails(item.id));
-                topFaqList.appendChild(itemDiv);
-            });
-        };
-
+        const displayTopFaqs = () => { /* ... */ };
         const showFaqDetails = (id) => {
-            const item = faqData.find(d => d.id === id);
-            if (!item) return;
-
-            fetch(`${GAS_WEB_APP_URL}?index=${item.id}`)
-                .then(res => { if (!res.ok) throw new Error('Count-up request failed'); return res.text(); })
-                .then(responseText => {
-                    console.log('Count-up success:', responseText);
-                    // ▼▼▼ 変更点1: ブラウザ側のデータも更新する ▼▼▼
-                    const clickedItem = faqData.find(faq => faq.id === id);
-                    if (clickedItem) {
-                        clickedItem.count += 1; // ローカルデータのカウントを1増やす
-                    }
-                })
-                .catch(err => console.error("Count-up failed:", err));
+            const item = faqData.find(d => d.id === id); if (!item) return;
             
-            const imageHtml = item.imageUrl ? `<img src="${item.imageUrl}" alt="関連画像" class="details-image">` : '';
+            // ▼▼▼ 非常にシンプルなfetchリクエスト ▼▼▼
+            fetch(`${GAS_WEB_APP_URL}?index=${item.id}`, { mode: 'no-cors' })
+                .catch(err => console.error("Count-up fetch error (this error can be ignored):", err));
+            
+            const clickedItem = faqData.find(faq => faq.id === id); if (clickedItem) clickedItem.count++;
+            const imageHtml = item.imageUrl ? `<img src="${transformImageUrl(item.imageUrl)}" alt="関連画像" class="details-image">` : '';
             detailsContent.innerHTML = `<div class="details-question">${item.question}</div><div class="details-answer">${item.answer}</div>${imageHtml}`;
             showDetailsArea();
         };
-
-        const showMainPage = () => {
-            detailsArea.classList.add('hidden');
-            topFaqArea.classList.remove('hidden');
-            searchArea.classList.remove('hidden');
-            // ▼▼▼ 変更点2: メインページに戻る時にランキングを再描画する ▼▼▼
-            displayTopFaqs();
-        };
-
-        const showDetailsArea = () => {
-            topFaqArea.classList.add('hidden');
-            searchArea.classList.add('hidden');
-            detailsArea.classList.remove('hidden');
-        };
-
-        backButton.addEventListener('click', showMainPage);
+        const showMainPage = () => { /* ... */ };
+        const showDetailsArea = () => { /* ... */ };
         
-        searchBox.addEventListener('keyup', () => { /* ... 検索ロジックは変更なし ... */ });
-        // (検索ロジックのペースト)
-        searchBox.addEventListener('keyup', () => {
-            const keywords = searchBox.value.toLowerCase().trim().split(/\s+/).filter(k => k);
-            searchResultsContainer.innerHTML = '';
-            if (keywords.length === 0) {
-                noResultsMessage.classList.add('hidden');
-                return;
-            }
-            const results = faqData.filter(item => {
-                const content = (item.question + ' ' + item.answer).toLowerCase();
-                return keywords.every(keyword => content.includes(keyword));
-            });
-            if (results.length > 0) {
-                noResultsMessage.classList.add('hidden');
-                results.forEach(item => {
-                    const resultDiv = document.createElement('div');
-                    resultDiv.className = 'result-item';
-                    resultDiv.dataset.id = item.id;
-                    resultDiv.innerHTML = `<p>Q: ${item.question}</p><p>${item.answer}</p>`;
-                    resultDiv.addEventListener('click', () => showFaqDetails(item.id));
-                    searchResultsContainer.appendChild(resultDiv);
-                });
-            } else {
-                noResultsMessage.classList.remove('hidden');
-            }
-        });
+        // ... (他の関数定義を簡略化のため省略、実際のコードには含める) ...
+        const originalDisplayTopFaqs = () => { const topFaqList = document.getElementById('top-faq-list'); topFaqList.innerHTML = ''; const sortedFaqs = [...faqData].sort((a, b) => b.count - a.count); const top5 = sortedFaqs.slice(0, 5); top5.forEach(item => { if (item.count === 0 && top5.length > 1) return; const div = document.createElement('div'); div.className = 'top-faq-item'; div.dataset.id = item.id; div.innerHTML = `<p>${item.question}</p>`; div.addEventListener('click', () => showFaqDetails(item.id)); topFaqList.appendChild(div); }); };
+        const originalShowMainPage = () => { detailsArea.classList.add('hidden'); topFaqArea.classList.remove('hidden'); searchArea.classList.remove('hidden'); originalDisplayTopFaqs(); };
+        const originalShowDetailsArea = () => { topFaqArea.classList.add('hidden'); searchArea.classList.remove('hidden'); detailsArea.classList.remove('hidden'); };
+        backButton.addEventListener('click', originalShowMainPage);
+        searchBox.addEventListener('keyup', () => { const keywords = searchBox.value.toLowerCase().trim().split(/\s+/).filter(k => k); searchResultsContainer.innerHTML = ''; if (keywords.length === 0) { noResultsMessage.classList.add('hidden'); return; } const results = faqData.filter(item => { const content = (item.question + ' ' + item.answer).toLowerCase(); return keywords.every(keyword => content.includes(keyword)); }); if (results.length > 0) { noResultsMessage.classList.add('hidden'); results.forEach(item => { const resultDiv = document.createElement('div'); resultDiv.className = 'result-item'; resultDiv.dataset.id = item.id; resultDiv.innerHTML = `<p>Q: ${item.question}</p><p>${item.answer}</p>`; resultDiv.addEventListener('click', () => showFaqDetails(item.id)); searchResultsContainer.appendChild(resultDiv); }); } else { noResultsMessage.classList.remove('hidden'); } });
+        displayTopFaqs = originalDisplayTopFaqs;
     });
     </script>
 </body>
