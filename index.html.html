@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FAQ検索 (LLM搭載)</title>
+    <!-- スタイルは変更なし -->
+    <style>body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;line-height:1.6;margin:0;padding:20px;background-color:#f9f9f9;color:#333}.container{max-width:800px;margin:0 auto;background-color:#fff;padding:20px 30px;border-radius:10px;box-shadow:0 4px 15px rgba(0,0,0,.08);min-height:400px}h1,h2{text-align:center;color:#2c3e50}h2{font-size:1.2em;margin-top:40px;border-bottom:2px solid #f0f0f0;padding-bottom:10px}#search-form{display:flex;gap:10px;margin-bottom:15px}#search-box{flex-grow:1;padding:15px;border:1px solid #ddd;border-radius:8px;font-size:16px}#search-button{padding:15px 20px;border:none;background-color:#3498db;color:#fff;border-radius:8px;cursor:pointer;font-size:16px}#search-button:disabled{background-color:#95a5a6}#search-results,#top-faq-list{max-height:50vh;overflow-y:auto;padding-left:0;list-style:none}.result-item,.top-faq-item{padding:15px;border-bottom:1px solid #eee;cursor:pointer;transition:background-color .2s}.result-item:hover,.top-faq-item:hover{background-color:#f2f8fc}.result-item:last-child,.top-faq-item:last-child{border-bottom:none}.result-item p,.top-faq-item p{margin:0;color:#555}.result-item p:first-child,.top-faq-item p:first-child{font-weight:700}.result-item p:last-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#back-button{background:0 0;border:1px solid #ccc;color:#555;padding:8px 15px;border-radius:5px;cursor:pointer;font-size:14px;margin-bottom:20px}#details-question{font-size:1.4em;font-weight:700;color:#2c3e50;margin-bottom:15px}#details-question::before{content:"Q. "}#details-answer{background-color:#fdfdfd;border-left:4px solid #3498db;padding:15px 20px;margin-bottom:20px;white-space:pre-wrap}.details-image{max-width:100%;height:auto;border-radius:5px;margin-top:10px;border:1px solid #eee}.hidden{display:none}#loading-message,#no-results-message,#search-status{text-align:center;color:#888;padding:20px 0}</style>
+</head>
+<body>
+    <div class="container">
+        <h1>FAQ検索</h1>
+        <div id="top-faq-area" class="hidden">
+            <h2>よく見られている質問</h2>
+            <div id="top-faq-list"></div>
+        </div>
+        <div id="search-area" class="hidden">
+            <h2>質問を入力してください</h2>
+            <form id="search-form">
+                <input type="text" id="search-box" placeholder="例：登録情報の変更方法">
+                <button type="submit" id="search-button">検索</button>
+            </form>
+            <div id="search-status"></div>
+            <div id="search-results"></div>
+        </div>
+        <div id="details-area" class="hidden">
+            <button id="back-button">← 戻る</button>
+            <div id="details-content"></div>
+        </div>
+        <div id="loading-message"><p>データを読み込み中です...</p></div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const SPREADSHEET_URL = '（あなたのスプレッドシートCSV公開URL）'https://docs.google.com/spreadsheets/d/e/2PACX-1vTjoQQrCTGeKMVSIhVUqwm_kbybGXIrxw5nMdNmfcfv_1RQRTU7DnOyATz_nKgf5qsG__zyeWpgI8dY/pub?output=csv;
+        const COUNT_GAS_URL = '（あなたのGASウェブアプリURL）'https://script.google.com/macros/s/AKfycbzM9Sv-WJ4IcxzSMp3sKeQbyJW-3SCK9D3oQa3axOD6-ShTDIBEbSbR_LGcT9fXTnPG/exec;
+        const SEARCH_GAS_URL = '（あなたのGASウェブアプリURL）'https://script.google.com/macros/s/AKfycbzM9Sv-WJ4IcxzSMp3sKeQbyJW-3SCK9D3oQa3axOD6-ShTDIBEbSbR_LGcT9fXTnPG/exec; // 検索も同じURLを使います
+
+        // ... (要素取得のコードは変更なし) ...
+        const searchForm = document.getElementById('search-form');
+        const searchButton = document.getElementById('search-button');
+        const searchStatus = document.getElementById('search-status');
+
+        let faqData = [];
+        
+        // ... (データ読み込みとトップFAQ表示のロジックはほぼ同じ) ...
+        
+        // ▼▼▼ 新しい検索フォームの処理 ▼▼▼
+        searchForm.addEventListener('submit', (e) => {
+            e.preventDefault(); // ページの再読み込みを防ぐ
+            const query = document.getElementById('search-box').value.trim();
+            if (!query) return;
+
+            searchStatus.textContent = '最適な回答を検索中...';
+            searchButton.disabled = true;
+            document.getElementById('search-results').innerHTML = '';
+
+            fetch(SEARCH_GAS_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // GASがCORSを回避するために必要
+                body: JSON.stringify({ query: query })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) throw new Error(data.error);
+                
+                const bestMatch = faqData.find(faq => faq.id === data.bestMatchId);
+                if (bestMatch) {
+                    showFaqDetails(bestMatch.id);
+                } else {
+                    searchStatus.textContent = '最適な回答が見つかりませんでした。';
+                }
+            })
+            .catch(err => {
+                console.error('Search failed:', err);
+                searchStatus.textContent = '検索中にエラーが発生しました。';
+            })
+            .finally(() => {
+                searchButton.disabled = false;
+                // 検索ステータスメッセージを少し後に消す
+                setTimeout(() => { searchStatus.textContent = ''; }, 3000);
+            });
+        });
+
+        // 詳細表示時にカウントアップする機能
+        const showFaqDetails = (id) => {
+            const item = faqData.find(d => d.id === id);
+            if (!item) return;
+
+            // カウントアップの fetch は COUNT_GAS_URL を使う
+            fetch(`${COUNT_GAS_URL}?index=${item.id}`)
+                .then(res => res.text())
+                .then(data => {
+                    console.log('Count-up success:', data);
+                    const clickedItem = faqData.find(faq => faq.id === id);
+                    if (clickedItem) clickedItem.count += 1;
+                })
+                .catch(err => console.error("Count-up failed:", err));
+
+            // ... (詳細表示のHTML生成ロジックは変更なし) ...
+            
+            showDetailsArea();
+        };
+
+        // (他の関数やデータ読み込みロジックは、前回の最終版からほぼ流用)
+        // ここに前回の最終版コードから、データ読み込みや表示関連の関数を移植してください。
+        // SPREADSHEET_URL, COUNT_GAS_URL, SEARCH_GAS_URL の3つの定数を使うように修正します。
+    });
+    </script>
+</body>
+</html>
