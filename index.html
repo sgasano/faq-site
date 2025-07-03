@@ -30,12 +30,11 @@
 
     <script>
     document.addEventListener('DOMContentLoaded', () => {
-        // ▼▼▼▼▼ この2つのURLを、あなたのものに書き換えてください ▼▼▼▼▼
+        // あなたのURLに書き換えてください
         const SPREADSHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTjoQQrCTGeKMVSIhVUqwm_kbybGXIrxw5nMdNmfcfv_1RQRTU7DnOyATz_nKgf5qsG__zyeWpgI8dY/pub?output=csv';
-        const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyNyRNKM22LDD3M1ciC2toFaUuSxPwEdsXHuyIpSsBAkhvMjfsY599CfsmwVYKF6_xb/exec';
-        // ▲▲▲▲▲ この2つのURLを、あなたのものに書き換えてください ▲▲▲▲▲
+        const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyNyRNKM22LDD3M1ciC2toFaUuSxPwEdsXHuyIpSsBAkhvMjfsY599CfsmwVYKF6_xb/exec'; // 新しいURLでも古いURLでも、最後にデプロイした方
 
-        // 要素取得
+        // ... (要素取得やヘルパー関数は変更なし) ...
         const topFaqArea = document.getElementById('top-faq-area');
         const searchArea = document.getElementById('search-area');
         const detailsArea = document.getElementById('details-area');
@@ -47,58 +46,26 @@
         const detailsContent = document.getElementById('details-content');
         const backButton = document.getElementById('back-button');
         const loadingMessage = document.getElementById('loading-message');
-
         let faqData = [];
-
-        // URLから画像IDを抽出してImgurのURLに変換するヘルパー関数
-        const transformImageUrl = (url) => {
-             // ImgurのURLはそのまま返す
-            if (url.includes('imgur.com')) {
-                return url;
-            }
-            // Google DriveのURLを変換（もし使う場合）
-            const regex = /drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/;
-            const match = url.match(regex);
-            return (match && match[1]) ? `https://drive.google.com/uc?export=view&id=${match[1]}` : url;
-        };
-        
-        // CSVの1行をパースするヘルパー関数
+        const transformImageUrl = (url) => { if (url.includes('imgur.com')) { return url; } const regex = /drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/; const match = url.match(regex); return (match && match[1]) ? `https://drive.google.com/uc?export=view&id=${match[1]}` : url; };
         const parseCsvRow = (row) => { const result = []; const regex = /("([^"]|"")*"|[^,]*)(,|$)/g; row += ','; let match; while ((match = regex.exec(row))) { let value = match[1] || ''; if (value.startsWith('"') && value.endsWith('"')) value = value.slice(1, -1).replace(/""/g, '"'); result.push(value); if (match[3] === '') break; } return result; };
 
-        // データの初期読み込み
+        // ... (データ読み込みロジックは変更なし) ...
         fetch(SPREADSHEET_URL + '&cache_bust=' + new Date().getTime())
             .then(response => { if (!response.ok) throw new Error('スプレッドシートのデータ読み込みエラー: ' + response.status); return response.text(); })
             .then(csvText => {
                 const rows = csvText.trim().split(/\r?\n/).slice(1);
-                faqData = rows.map((row, index) => {
-                    if (!row.trim()) return null;
-                    const columns = parseCsvRow(row);
-                    return { id: index, question: columns[0] || '', answer: columns[1] || '', imageUrl: columns[2] || '', count: parseInt(columns[3] || '0') };
-                }).filter(item => item && item.question);
-                
+                faqData = rows.map((row, index) => { if (!row.trim()) return null; const columns = parseCsvRow(row); return { id: index, question: columns[0] || '', answer: columns[1] || '', imageUrl: columns[2] || '', count: parseInt(columns[3] || '0') }; }).filter(item => item && item.question);
                 loadingMessage.classList.add('hidden');
                 topFaqArea.classList.remove('hidden');
                 searchArea.classList.remove('hidden');
                 displayTopFaqs();
             })
             .catch(error => { loadingMessage.innerHTML = `<p style="color: red;">初期化エラー: ${error.message}</p>`; });
-
-        // トップFAQ表示
-        const displayTopFaqs = () => {
-            topFaqList.innerHTML = '';
-            const sortedFaqs = [...faqData].sort((a, b) => b.count - a.count);
-            const top5 = sortedFaqs.slice(0, 5);
-            top5.forEach(item => {
-                if (item.count === 0 && top5.length > 1) return; // カウント0は表示しない（ただし1件もなければ表示）
-                const itemDiv = document.createElement('div');
-                itemDiv.className = 'top-faq-item';
-                itemDiv.dataset.id = item.id;
-                itemDiv.innerHTML = `<p>${item.question}</p>`;
-                itemDiv.addEventListener('click', () => showFaqDetails(item.id));
-                topFaqList.appendChild(itemDiv);
-            });
-        };
-
+        
+        // ... (トップFAQ表示ロジックは変更なし) ...
+        const displayTopFaqs = () => { topFaqList.innerHTML = ''; const sortedFaqs = [...faqData].sort((a, b) => b.count - a.count); const top5 = sortedFaqs.slice(0, 5); top5.forEach(item => { if (item.count === 0 && top5.length > 1) return; const itemDiv = document.createElement('div'); itemDiv.className = 'top-faq-item'; itemDiv.dataset.id = item.id; itemDiv.innerHTML = `<p>${item.question}</p>`; itemDiv.addEventListener('click', () => showFaqDetails(item.id)); topFaqList.appendChild(itemDiv); }); };
+        
         // LLM検索実行
         searchForm.addEventListener('submit', (e) => {
             e.preventDefault();
@@ -110,8 +77,11 @@
 
             fetch(GAS_WEB_APP_URL, {
                 method: 'POST',
-                body: JSON.stringify({ query: query }),
-                headers: { 'Content-Type': 'application/json' },
+                // ▼▼▼▼▼ ここが最重要の修正点 ▼▼▼▼▼
+                // 'application/json' ではなく 'text/plain' にすることで、プリフライトリクエストを回避する
+                headers: { 'Content-Type': 'text/plain' },
+                // ▲▲▲▲▲ ここが最重要の修正点 ▲▲▲▲▲
+                body: JSON.stringify({ query: query })
             })
             .then(res => res.json())
             .then(data => {
@@ -133,37 +103,10 @@
             });
         });
 
-        // 詳細表示とカウントアップ
-        const showFaqDetails = (id) => {
-            const item = faqData.find(d => d.id === id);
-            if (!item) return;
-
-            // カウントアップは応答を待たない（no-cors はエラーの原因になることがあるので削除）
-            fetch(`${GAS_WEB_APP_URL}?index=${item.id}`)
-                .catch(err => console.error("Count-up fetch error:", err));
-            
-            const clickedItem = faqData.find(faq => faq.id === id);
-            if (clickedItem) clickedItem.count++;
-
-            const imageHtml = item.imageUrl ? `<img src="${transformImageUrl(item.imageUrl)}" alt="関連画像" class="details-image">` : '';
-            detailsContent.innerHTML = `<div class="details-question">${item.question}</div><div class="details-answer">${item.answer}</div>${imageHtml}`;
-            showDetailsArea();
-        };
-
-        // UI表示切り替え関数
-        const showMainPage = () => {
-            detailsArea.classList.add('hidden');
-            topFaqArea.classList.remove('hidden');
-            searchArea.classList.remove('hidden');
-            displayTopFaqs();
-        };
-
-        const showDetailsArea = () => {
-            topFaqArea.classList.add('hidden');
-            searchArea.classList.add('hidden');
-            detailsArea.classList.remove('hidden');
-        };
-
+        // ... (詳細表示とUI切り替え関数は変更なし) ...
+        const showFaqDetails = (id) => { const item = faqData.find(d => d.id === id); if (!item) return; fetch(`${GAS_WEB_APP_URL}?index=${item.id}`).catch(err => console.error("Count-up fetch error:", err)); const clickedItem = faqData.find(faq => faq.id === id); if (clickedItem) clickedItem.count++; const imageHtml = item.imageUrl ? `<img src="${transformImageUrl(item.imageUrl)}" alt="関連画像" class="details-image">` : ''; detailsContent.innerHTML = `<div class="details-question">${item.question}</div><div class="details-answer">${item.answer}</div>${imageHtml}`; showDetailsArea(); };
+        const showMainPage = () => { detailsArea.classList.add('hidden'); topFaqArea.classList.remove('hidden'); searchArea.classList.remove('hidden'); displayTopFaqs(); };
+        const showDetailsArea = () => { topFaqArea.classList.add('hidden'); searchArea.classList.add('hidden'); detailsArea.classList.remove('hidden'); };
         backButton.addEventListener('click', showMainPage);
     });
     </script>
