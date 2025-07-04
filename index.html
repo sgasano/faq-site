@@ -5,22 +5,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FAQ検索</title>
     <style>
-        /* ▼▼▼ 動画埋め込み用のスタイルを追加 ▼▼▼ */
-        .details-video-wrapper {
-            position: relative;
-            padding-bottom: 56.25%; /* 16:9のアスペクト比 */
-            height: 0;
-            overflow: hidden;
-            max-width: 100%;
-            background: #000;
+        .details-video-wrapper { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; background: #000; margin-top: 15px; }
+        .details-video-wrapper iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        
+        /* ▼▼▼ 変更点1：リンク用のCSSスタイルを追加 ▼▼▼ */
+        .details-link {
+            display: block;
             margin-top: 15px;
+            padding: 15px 20px;
+            background-color: #e9ecef;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            color: #0d6efd;
+            text-decoration: none;
+            font-weight: bold;
+            text-align: center;
+            transition: background-color 0.2s;
         }
-        .details-video-wrapper iframe {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+        .details-link:hover {
+            background-color: #dde2e7;
+            text-decoration: underline;
+        }
+        .details-link::after {
+            content: ' →'; /* 矢印を追加 */
         }
         /* ▲▲▲ ここまで追加 ▲▲▲ */
 
@@ -29,6 +36,7 @@
 </head>
 <body>
     <div class="container">
+        <!-- ... HTMLの構造は変更なし ... -->
         <h1>FAQ検索</h1>
         <div id="top-faq-area" class="hidden"><h2>よく見られている質問</h2><div id="top-faq-list"></div></div>
         <div id="search-area" class="hidden">
@@ -57,9 +65,9 @@
         const loadingMessage = document.getElementById('loading-message');
         const noResultsMessage = document.getElementById('no-results-message');
         let faqData = [];
-        
         const parseCsvRow = (row) => { const result = []; const regex = /("([^"]|"")*"|[^,]*)(,|$)/g; row += ','; let match; while ((match = regex.exec(row))) { let value = match[1] || ''; if (value.startsWith('"') && value.endsWith('"')) value = value.slice(1, -1).replace(/""/g, '"'); result.push(value); if (match[3] === '') break; } return result; };
-
+        
+        // ... (データ読み込みロジックは変更なし) ...
         fetch(SPREADSHEET_URL + '&cache_bust=' + new Date().getTime())
             .then(res => res.text()).then(csvText => {
                 faqData = csvText.trim().split(/\r?\n/).slice(1).map((row, index) => { if (!row.trim()) return null; const columns = parseCsvRow(row); return { id: index, question: columns[0] || '', answer: columns[1] || '', imageUrl: columns[2] || '', count: parseInt(columns[3] || '0') }; }).filter(item => item && item.question);
@@ -71,7 +79,7 @@
 
         let displayTopFaqs = () => { /* ... */ };
         
-        // ▼▼▼ ここから下が修正箇所 ▼▼▼
+        // ▼▼▼ 変更点2：showFaqDetails関数の中身を更新 ▼▼▼
         let showFaqDetails = (id) => {
             const item = faqData.find(d => d.id === id); if (!item) return;
             
@@ -83,21 +91,30 @@
             
             let mediaHtml = '';
             if (item.imageUrl) {
-                // YouTubeのURLかどうかを判定
+                const url = item.imageUrl;
+                
+                // 1. YouTubeのURLかチェック
                 const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/;
-                const youtubeMatch = item.imageUrl.match(youtubeRegex);
+                const youtubeMatch = url.match(youtubeRegex);
+
+                // 2. 画像ファイルのURLかチェック
+                const imageRegex = /\.(jpg|jpeg|png|gif|webp|svg)(\?.*)?$/i;
+                const imageMatch = url.match(imageRegex);
 
                 if (youtubeMatch && youtubeMatch[1]) {
-                    // YouTubeのURLの場合、埋め込み用iframeを生成
+                    // YouTubeのURLの場合
                     const videoId = youtubeMatch[1];
                     mediaHtml = `
                         <div class="details-video-wrapper">
                             <iframe src="https://www.youtube.com/embed/${videoId}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
                         </div>
                     `;
+                } else if (imageMatch) {
+                    // 画像URLの場合
+                    mediaHtml = `<img src="${url}" alt="関連画像" class="details-image">`;
                 } else {
-                    // YouTube以外は画像として扱う
-                    mediaHtml = `<img src="${item.imageUrl}" alt="関連画像" class="details-image">`;
+                    // それ以外のURL（WordPressページなど）の場合
+                    mediaHtml = `<a href="${url}" class="details-link" target="_blank" rel="noopener noreferrer">関連ページの詳細を見る</a>`;
                 }
             }
             
@@ -108,7 +125,7 @@
             `;
             showDetailsArea();
         };
-        // ▲▲▲ ここまでが修正箇所 ▲▲▲
+        // ▲▲▲ ここまでが変更箇所 ▲▲▲
 
         let showMainPage = () => { /* ... */ };
         let showDetailsArea = () => { /* ... */ };
